@@ -1,0 +1,168 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": " cloudformation",
+    "Resources": {
+        "myfirstvpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "vpc"
+                    }
+                ]
+            }
+        },
+        "subnet1": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc"
+                },
+                "CidrBlock": "10.0.1.0/24",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Subnet1"
+                    }
+                ]
+            }
+        },
+        "subnet2": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myfirstvpc"
+                },
+                "CidrBlock": "10.0.2.0/24",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Subnet"
+                    }
+                ]
+            }
+        },
+        "myfirstigw": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "igw"
+                    }
+                ]
+            }
+        },
+        "AttachGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc"
+                },
+                "InternetGatewayId": {
+                    "Ref": "igw"
+                }
+            }
+        },
+        "publicroute": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "publicroute"
+                    }
+                ]
+            }
+        },
+        "routeName": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "publicroute"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "igw"
+                }
+            }
+        },
+        "routeTableAssocName": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "subnet"
+                },
+                "RouteTableId": {
+                    "Ref": "publicroute"
+                }
+            }
+        },
+        "secGroupName": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "newsecuritygroup",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 80,
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "vpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Newsecuritygroup"
+                    }
+                ]
+            }
+        },
+        "webserver": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "KeyName": "mykey",
+                "ImageId": "ami-0f65671a86f061fcd",
+                "InstanceType": "t2.micro",
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "SubnetId": {
+                            "Ref": "subnet"
+                        },
+                        "GroupSet": [
+                            {
+                                "Ref": "secGroupName"
+                            }]
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "webserver"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash -ex\n",
+                                "sudo apt-get update\n",
+                                "sudo apt-get install apache2 -y\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        }
+    },
